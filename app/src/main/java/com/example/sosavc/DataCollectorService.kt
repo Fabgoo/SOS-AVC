@@ -228,6 +228,12 @@ class DataCollectorService : Service(), SensorEventListener {
         json.put("contact1", contact1)
         json.put("contact2", contact2)
         json.put("contact3", contact3)
+        // Array dinâmico de contatos (todos os adicionados)
+        val contactsArray = org.json.JSONArray()
+        if (!contact1.isNullOrBlank()) contactsArray.put(contact1)
+        if (!contact2.isNullOrBlank()) contactsArray.put(contact2)
+        if (!contact3.isNullOrBlank()) contactsArray.put(contact3)
+        json.put("contacts", contactsArray)
         // Usar chave "location" (backend aceitará location/localizacao)
         json.put("location", locationStr)
 

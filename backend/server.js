@@ -139,7 +139,8 @@ app.post('/api/receber-dados', authenticateToken, [
   body('user_name').optional().isLength({ min: 1, max: 100 }).trim().escape(),
   body('contact1').optional().isLength({ max: 100 }).trim().escape(),
   body('contact2').optional().isLength({ max: 100 }).trim().escape(),
-  body('contact3').optional().isLength({ max: 100 }).trim().escape()
+  body('contact3').optional().isLength({ max: 100 }).trim().escape(),
+  body('contacts').optional().isArray()
 ], (req, res) => {
   try {
     const errors = validationResult(req);
@@ -161,6 +162,7 @@ app.post('/api/receber-dados', authenticateToken, [
     const contact1 = req.body.contact1;
     const contact2 = req.body.contact2;
     const contact3 = req.body.contact3;
+    const contactsArray = Array.isArray(req.body.contacts) ? req.body.contacts : [];
 
     const userId = req.user.userId;
     const user = users.get(userId);
@@ -191,6 +193,7 @@ app.post('/api/receber-dados', authenticateToken, [
     user.contact1 = contact1 || '';
     user.contact2 = contact2 || '';
     user.contact3 = contact3 || '';
+    user.contacts = contactsArray.filter(c => typeof c === 'string' && c.trim());
 
     users.set(userId, user);
 
@@ -246,7 +249,10 @@ function checkForEmergency(userId) {
 
 // Função para enviar alertas de emergência
 async function sendEmergencyAlert(user) {
-  const contacts = [user.contact1, user.contact2, user.contact3].filter(c => c && c.trim());
+  const legacyContacts = [user.contact1, user.contact2, user.contact3].filter(c => c && c.trim());
+  const contacts = Array.isArray(user.contacts) && user.contacts.length > 0
+    ? Array.from(new Set([...user.contacts, ...legacyContacts]))
+    : legacyContacts;
   
   if (contacts.length === 0) {
     console.log(`Nenhum contato encontrado para usuário ${user.userName}`);
