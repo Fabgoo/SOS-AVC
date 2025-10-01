@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SOS AVC</string>
+    <string name="accessibility_service_description">Detecta interações do usuário para o app SOS AVC</string>
+    <string name="server_url">https://seu-backend.onrender.com</string>
+</resources>
