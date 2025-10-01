@@ -223,14 +223,13 @@ class DataCollectorService : Service(), SensorEventListener {
         }
 
         val json = JSONObject()
-        json.put("interacao", interactionStr)
-        json.put("movimento", movementStr)
-        json.put("localizacao", locationStr)
-        json.put("conectado", carregandoStr)
-        json.put("em_horario_de_sono", "N") // Por enquanto sempre N
+        // Enviar apenas nome, contatos e localização
+        json.put("user_name", userName)
         json.put("contact1", contact1)
         json.put("contact2", contact2)
         json.put("contact3", contact3)
+        // Usar chave "location" (backend aceitará location/localizacao)
+        json.put("location", locationStr)
 
         val requestBody = json.toString().toRequestBody("application/json".toMediaType())
         val serverUrl = getString(R.string.server_url) ?: "https://seu-backend.onrender.com"

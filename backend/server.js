@@ -129,11 +129,14 @@ app.post('/api/auth/login', loginLimiter, [
 
 // Rota para receber dados do app (agora protegida)
 app.post('/api/receber-dados', authenticateToken, [
-  body('interacao').isIn(['S', 'N']),
-  body('movimento').isIn(['S', 'N']),
-  body('localizacao').isLength({ max: 500 }).trim(),
-  body('conectado').isIn(['S', 'N']),
-  body('em_horario_de_sono').isIn(['S', 'N']),
+  // Payload flexível: aceitar tanto o formato completo quanto o simplificado
+  body('interacao').optional().isIn(['S', 'N']),
+  body('movimento').optional().isIn(['S', 'N']),
+  body('localizacao').optional().isLength({ max: 500 }).trim(),
+  body('location').optional().isLength({ max: 500 }).trim(),
+  body('conectado').optional().isIn(['S', 'N']),
+  body('em_horario_de_sono').optional().isIn(['S', 'N']),
+  body('user_name').optional().isLength({ min: 1, max: 100 }).trim().escape(),
   body('contact1').optional().isLength({ max: 100 }).trim().escape(),
   body('contact2').optional().isLength({ max: 100 }).trim().escape(),
   body('contact3').optional().isLength({ max: 100 }).trim().escape()
@@ -148,16 +151,16 @@ app.post('/api/receber-dados', authenticateToken, [
       });
     }
 
-    const {
-      interacao,
-      movimento,
-      localizacao,
-      conectado,
-      em_horario_de_sono,
-      contact1,
-      contact2,
-      contact3
-    } = req.body;
+    // Mapear campos aceitando ambos os formatos
+    const interacao = req.body.interacao; // opcional
+    const movimento = req.body.movimento; // opcional
+    const localizacao = req.body.localizacao || req.body.location || '';
+    const conectado = req.body.conectado; // opcional
+    const em_horario_de_sono = req.body.em_horario_de_sono; // opcional
+    const user_name = req.body.user_name; // opcional
+    const contact1 = req.body.contact1;
+    const contact2 = req.body.contact2;
+    const contact3 = req.body.contact3;
 
     const userId = req.user.userId;
     const user = users.get(userId);
@@ -169,17 +172,22 @@ app.post('/api/receber-dados', authenticateToken, [
       });
     }
 
+    // Atualizar nome se veio no payload simplificado
+    if (user_name && typeof user_name === 'string') {
+      user.userName = user_name;
+    }
+
     console.log(`Dados recebidos do usuário ${user.userName}:`, {
       interacao, movimento, localizacao, conectado, em_horario_de_sono
     });
 
     // Atualizar dados do usuário
     user.lastUpdate = new Date();
-    user.lastInteraction = interacao === 'S';
-    user.lastMovement = movimento === 'S';
-    user.location = localizacao;
-    user.isCharging = conectado === 'S';
-    user.isSleepTime = em_horario_de_sono === 'S';
+    if (typeof interacao !== 'undefined') user.lastInteraction = interacao === 'S';
+    if (typeof movimento !== 'undefined') user.lastMovement = movimento === 'S';
+    if (localizacao) user.location = localizacao;
+    if (typeof conectado !== 'undefined') user.isCharging = conectado === 'S';
+    if (typeof em_horario_de_sono !== 'undefined') user.isSleepTime = em_horario_de_sono === 'S';
     user.contact1 = contact1 || '';
     user.contact2 = contact2 || '';
     user.contact3 = contact3 || '';
@@ -249,19 +257,11 @@ async function sendEmergencyAlert(user) {
 🚨 ALERTA DE EMERGÊNCIA - SOS AVC
 
 Nome: ${user.userName}
-ID: ${user.deviceId}
+Localização: ${user.location || 'N/A'}
 
-O aplicativo SOS AVC detectou que ${user.userName} pode estar em uma situação de emergência:
+Por favor, tente contato imediato com ${user.userName}.
 
-• Última interação: ${user.lastInteraction ? 'Sim' : 'Não'}
-• Último movimento: ${user.lastMovement ? 'Sim' : 'Não'}
-• Localização: ${user.location}
-• Carregando: ${user.isCharging ? 'Sim' : 'Não'}
-• Horário de sono: ${user.isSleepTime ? 'Sim' : 'Não'}
-
-POR FAVOR, entre em contato imediatamente para verificar se está tudo bem!
-
-Este é um alerta automático do aplicativo SOS AVC.
+Alerta automático do aplicativo SOS AVC.
   `.trim();
 
   // Enviar email para cada contato
